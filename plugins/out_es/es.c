@@ -868,10 +868,16 @@ static void cb_es_flush(struct flb_event_chunk *event_chunk,
     flb_http_add_header(c, "Content-Type", 12, "application/x-ndjson", 20);
 
     if (ctx->http_user && ctx->http_passwd) {
+        flb_plg_debug(ctx->ins, "Authentication using HTTP Credentials");
         flb_http_basic_auth(c, ctx->http_user, ctx->http_passwd);
     }
     else if (ctx->cloud_user && ctx->cloud_passwd) {
+        flb_plg_debug(ctx->ins, "Authentication using Elastic Cloud API Auth");
         flb_http_basic_auth(c, ctx->cloud_user, ctx->cloud_passwd);
+    }
+    else if (ctx->cloud_apikey) {
+        flb_plg_debug(ctx->ins, "Authenticate using Elastic Cloud API Key");
+        flb_http_apikey_auth(c, ctx->cloud_apikey);
     }
 
 #ifdef FLB_HAVE_AWS
@@ -926,7 +932,7 @@ static void cb_es_flush(struct flb_event_chunk *event_chunk,
                     /*
                      * If trace_error is set, trace the actual
                      * response from Elasticsearch explaining the problem.
-                     * Trace_Output can be used to see the request. 
+                     * Trace_Output can be used to see the request.
                      */
                     if (pack_size < 4000) {
                         flb_plg_debug(ctx->ins, "error caused by: Input\n%.*s\n",
@@ -1033,6 +1039,11 @@ static struct flb_config_map config_map[] = {
      FLB_CONFIG_MAP_STR, "cloud_auth", NULL,
      0, FLB_FALSE, 0,
      "Elastic cloud authentication credentials"
+    },
+    {
+     FLB_CONFIG_MAP_STR, "cloud_apikey", NULL,
+     0, FLB_FALSE, 0,
+     "Elastic cloud API key credentials"
     },
 
     /* AWS Authentication */

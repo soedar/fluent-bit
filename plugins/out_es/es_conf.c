@@ -160,7 +160,7 @@ struct flb_elasticsearch *flb_es_conf_create(struct flb_output_instance *ins,
 
         cloud_port_char = strchr(cloud_host, ':');
 
-	if (cloud_port_char == NULL) {
+        if (cloud_port_char == NULL) {
             flb_plg_debug(ctx->ins, "cloud_host: '%s' does not contain a port: '%s'", cloud_host, cloud_host);
         }
         else {
@@ -169,7 +169,7 @@ struct flb_elasticsearch *flb_es_conf_create(struct flb_output_instance *ins,
             flb_plg_debug(ctx->ins, "extracted cloud_port_char: '%s'", cloud_port_char);
             cloud_host_port = (int) strtol(cloud_port_char, (char **) NULL, 10);
             flb_plg_debug(ctx->ins, "converted cloud_port_char to port int: '%i'", cloud_host_port);
-	}
+        }
 
         if (cloud_host_port == 0) {
             cloud_host_port = cloud_port;
@@ -203,6 +203,12 @@ struct flb_elasticsearch *flb_es_conf_create(struct flb_output_instance *ins,
     tmp = flb_output_get_property("cloud_auth", ins);
     if (tmp) {
         set_cloud_credentials(ctx, tmp);
+    }
+
+    /* handle cloud_apikey */
+    tmp = flb_output_get_property("cloud_apikey", ins);
+    if (tmp) {
+        ctx->cloud_apikey = tmp;
     }
 
     /* use TLS ? */

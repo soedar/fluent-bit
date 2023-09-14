@@ -1136,7 +1136,7 @@ int flb_http_proxy_auth(struct flb_http_client *c,
     return flb_http_add_auth_header(c, user, passwd, FLB_HTTP_HEADER_PROXY_AUTH);
 }
 
-int flb_http_bearer_auth(struct flb_http_client *c, const char *token)
+int flb_http_auth(struct flb_http_client *c, const char *type, const char *auth)
 {
     flb_sds_t header_buffer;
     flb_sds_t header_line;
@@ -1144,21 +1144,21 @@ int flb_http_bearer_auth(struct flb_http_client *c, const char *token)
 
     result = -1;
 
-    if (token == NULL) {
-        token = "";
+    if (auth == NULL) {
+        auth = "";
 
         /* Shouldn't we log this and return instead of sending
          * a malformed value?
          */
     }
 
-    header_buffer = flb_sds_create_size(strlen(token) + 64);
+    header_buffer = flb_sds_create_size(strlen(auth) + 64);
 
     if (header_buffer == NULL) {
         return -1;
     }
 
-    header_line = flb_sds_printf(&header_buffer, "Bearer %s", token);
+    header_line = flb_sds_printf(&header_buffer, "%s %s", type, auth);
 
     if (header_line != NULL) {
         result = flb_http_add_header(c,
@@ -1173,6 +1173,15 @@ int flb_http_bearer_auth(struct flb_http_client *c, const char *token)
     return result;
 }
 
+int flb_http_bearer_auth(struct flb_http_client *c, const char *token)
+{
+    return flb_http_auth(c, "Bearer", token);
+}
+
+int flb_http_apikey_auth(struct flb_http_client *c, const char *apikey)
+{
+    return flb_http_auth(c, "ApiKey", apikey);
+}
 
 int flb_http_do(struct flb_http_client *c, size_t *bytes)
 {
