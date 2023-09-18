@@ -466,13 +466,68 @@ void test_http_add_proxy_auth_header()
     test_ctx_destroy(ctx);
 }
 
+void test_http_add_bearer_auth_header()
+{
+    struct test_ctx *ctx;
+    struct flb_http_client *c;
+    flb_sds_t ret_str;
+    char *expect = "Bearer bearer.token";
+    const char *token = "bearer.token";
+    int ret;
+
+    ctx = test_ctx_create();
+    if (!TEST_CHECK(ctx != NULL)) {
+        exit(EXIT_FAILURE);
+    }
+
+    /* Create HTTP client instance */
+    c = flb_http_client(ctx->u_conn, FLB_HTTP_GET, "/", NULL, 0,
+                        "127.0.0.1", 80, NULL, 0);
+    if(!TEST_CHECK(c != NULL)) {
+        TEST_MSG("flb_http_client failed");
+        test_ctx_destroy(ctx);
+        exit(EXIT_FAILURE);
+    }
+
+    /* Check autholization header. It should be error. */
+    ret_str = flb_http_get_header(c, FLB_HTTP_HEADER_AUTH, strlen(FLB_HTTP_HEADER_AUTH));
+    if (!TEST_CHECK(ret_str == NULL)) {
+        TEST_MSG("Got auth? Header:%s", ret_str);
+        flb_sds_destroy(ret_str);
+        flb_http_client_destroy(c);
+        test_ctx_destroy(ctx);
+        exit(EXIT_FAILURE);
+    }
+
+    ret = flb_http_bearer_auth(c, token);
+    TEST_CHECK(ret == 0);
+
+    /* Check autholization header. */
+    ret_str = flb_http_get_header(c, FLB_HTTP_HEADER_AUTH, strlen(FLB_HTTP_HEADER_AUTH));
+    if (!TEST_CHECK(ret_str != NULL)) {
+        TEST_MSG("flb_http_get_header failed");
+        flb_http_client_destroy(c);
+        test_ctx_destroy(ctx);
+        exit(EXIT_FAILURE);
+    }
+
+    if (!TEST_CHECK(flb_sds_cmp(ret_str, expect, strlen(expect)) == 0)) {
+        TEST_MSG("strcmp failed. got=%s expect=%s", ret_str, expect);
+    }
+
+    flb_sds_destroy(ret_str);
+    flb_http_client_destroy(c);
+    test_ctx_destroy(ctx);
+}
+
 TEST_LIST = {
-    { "http_buffer_increase"  , test_http_buffer_increase},
-    { "add_get_header"        , test_http_add_get_header},
-    { "set_keepalive"         , test_http_set_keepalive},
-    { "strip_port_from_host"  , test_http_strip_port_from_host},
-    { "encoding_gzip"         , test_http_encoding_gzip},
-    { "add_basic_auth_header" , test_http_add_basic_auth_header},
-    { "add_proxy_auth_header" , test_http_add_proxy_auth_header},
+    { "http_buffer_increase"   , test_http_buffer_increase},
+    { "add_get_header"         , test_http_add_get_header},
+    { "set_keepalive"          , test_http_set_keepalive},
+    { "strip_port_from_host"   , test_http_strip_port_from_host},
+    { "encoding_gzip"          , test_http_encoding_gzip},
+    { "add_basic_auth_header"  , test_http_add_basic_auth_header},
+    { "add_proxy_auth_header"  , test_http_add_proxy_auth_header},
+    { "add_bearer_auth_header" , test_http_add_bearer_auth_header},
     { 0 }
 };

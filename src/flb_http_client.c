@@ -1061,8 +1061,8 @@ int flb_http_set_callback_context(struct flb_http_client *c,
     return 0;
 }
 
-int flb_http_add_auth_header(struct flb_http_client *c,
-                             const char *user, const char *passwd, const char *header) {
+int flb_http_add_basic_auth(struct flb_http_client *c,
+                            const char *user, const char *passwd, const char *header) {
     int ret;
     int len_u;
     int len_p;
@@ -1127,60 +1127,51 @@ int flb_http_add_auth_header(struct flb_http_client *c,
 int flb_http_basic_auth(struct flb_http_client *c,
                         const char *user, const char *passwd)
 {
-    return flb_http_add_auth_header(c, user, passwd, FLB_HTTP_HEADER_AUTH);
+    return flb_http_add_basic_auth(c, user, passwd, FLB_HTTP_HEADER_AUTH);
 }
 
 int flb_http_proxy_auth(struct flb_http_client *c,
                         const char *user, const char *passwd)
 {
-    return flb_http_add_auth_header(c, user, passwd, FLB_HTTP_HEADER_PROXY_AUTH);
+    return flb_http_add_basic_auth(c, user, passwd, FLB_HTTP_HEADER_PROXY_AUTH);
 }
 
-int flb_http_auth(struct flb_http_client *c, const char *type, const char *auth)
+int flb_http_add_auth_header(struct flb_http_client *c, const char *type, const char *credentials)
 {
-    flb_sds_t header_buffer;
-    flb_sds_t header_line;
-    int       result;
+    flb_sds_t auth_value;
+    int ret = -1;
 
-    result = -1;
-
-    if (auth == NULL) {
-        auth = "";
-
-        /* Shouldn't we log this and return instead of sending
-         * a malformed value?
-         */
-    }
-
-    header_buffer = flb_sds_create_size(strlen(auth) + 64);
-
-    if (header_buffer == NULL) {
+    if (type == NULL || credentials == NULL) {
         return -1;
     }
 
-    header_line = flb_sds_printf(&header_buffer, "%s %s", type, auth);
-
-    if (header_line != NULL) {
-        result = flb_http_add_header(c,
-                                     FLB_HTTP_HEADER_AUTH,
-                                     strlen(FLB_HTTP_HEADER_AUTH),
-                                     header_line,
-                                     flb_sds_len(header_line));
+    auth_value = flb_sds_create_size(strlen(type) + strlen(credentials) + 2);
+    if (auth_value == NULL) {
+        return -1;
     }
 
-    flb_sds_destroy(header_buffer);
+    auth_value = flb_sds_printf(&auth_value, "%s %s", type, credentials);
+    if (auth_value != NULL) {
+        ret = flb_http_add_header(c,
+                                  FLB_HTTP_HEADER_AUTH,
+                                  strlen(FLB_HTTP_HEADER_AUTH),
+                                  auth_value,
+                                  flb_sds_len(auth_value));
+    }
 
-    return result;
+    flb_sds_destroy(auth_value);
+
+    return ret;
 }
 
 int flb_http_bearer_auth(struct flb_http_client *c, const char *token)
 {
-    return flb_http_auth(c, "Bearer", token);
+    return flb_http_auth_scheme(c, "Bearer", token);
 }
 
 int flb_http_apikey_auth(struct flb_http_client *c, const char *apikey)
 {
-    return flb_http_auth(c, "ApiKey", apikey);
+    return flb_http_auth_scheme(c, "ApiKey", apikey);
 }
 
 int flb_http_do(struct flb_http_client *c, size_t *bytes)
